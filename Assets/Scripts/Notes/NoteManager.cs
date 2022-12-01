@@ -17,12 +17,12 @@ public class NoteManager : MonoBehaviour
     [SerializeField] private ParticleSystem m_completeParticles;
 
     [Header("ComponentsRef")] 
-    [SerializeField] private HandController m_handControllerRef;
     [SerializeField] private NoteDeadZone m_deadZoneRef;
     [SerializeField] private Transform m_noteHolder;
     [SerializeField] private Transform m_particleHolder;
+    private HandController m_handControllerRef;
 
-    private Queue<NoteBehaviour> m_currentNotes = new Queue<NoteBehaviour>();
+    private Queue<NoteBehaviour> m_currentNotes;
     private bool m_started = false;
 
     
@@ -37,10 +37,17 @@ public class NoteManager : MonoBehaviour
 
     public void Reset()
     {
+        while (m_currentNotes?.Count > 0)
+        {
+            Destroy(m_currentNotes.Dequeue());
+        }
+
+        m_currentNotes = new Queue<NoteBehaviour>();
+        
         m_currentSpawnRate = m_baseSpawnRate;
         m_currentSpeed = m_baseSpawnSpeed;
     }
-    
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
@@ -51,6 +58,7 @@ public class NoteManager : MonoBehaviour
     {
         if (!m_started) return;
 
+        m_handControllerRef = FindObjectOfType<HandController>();
         m_handControllerRef.OnNewGesture += ProcessInput;
     }
 
@@ -83,24 +91,30 @@ public class NoteManager : MonoBehaviour
     {
         if (m_spawnTime <= 0.0f)
         {
-            NoteBehaviour l_note = Instantiate(m_notePrefab, transform.position, Quaternion.identity, m_noteHolder);
-            Vector3 l_direction = m_deadZoneRef.transform.position - transform.position;
+            Vector3 l_tPosition = transform.position;
+            Vector3 l_position = new Vector3(
+                Random.Range(l_tPosition.x - m_extent.x, l_tPosition.x + m_extent.x), 
+                Random.Range(l_tPosition.y - m_extent.y, l_tPosition.y + m_extent.y), 
+                l_tPosition.z);
+            NoteBehaviour l_note = Instantiate(m_notePrefab, l_position, Quaternion.identity, m_noteHolder);
+            Vector3 l_direction = m_deadZoneRef.transform.position - l_tPosition;
             l_direction.y = 0.0f; l_direction.Normalize();
             l_note.transform.forward = l_direction;
             l_note.Parent = this;
             l_note.ExpectedInput = (Gesture.Type)Random.Range(0, (int)Gesture.Type.MAX);
             l_note.Speed = m_currentSpeed;
 
-            ParticleSystem l_particles = 
+            /*ParticleSystem l_particles = 
                 Instantiate(m_spawnParticles, l_note.transform.position, Quaternion.identity, m_particleHolder);
             l_particles.Play();
-            
-            Destroy(l_particles.gameObject, Mathf.Max(l_particles.main.duration, l_particles.main.startLifetime.constantMax) + 0.1f);
+
+            ParticleSystem.MainModule l_mainModule = l_particles.main;
+            Destroy(l_particles.gameObject, Mathf.Max(l_mainModule.duration, l_mainModule.startLifetime.constantMax) + 0.1f);*/
             
             m_currentNotes.Enqueue(l_note);
 
-            m_currentSpeed += (m_currentSpeed * 0.05f);
-            m_currentSpawnRate -= (m_currentSpawnRate * 0.1f);
+            m_currentSpeed = Mathf.Min(2.0f, m_currentSpeed + (m_currentSpeed * 0.05f));
+            m_currentSpawnRate = Mathf.Max(0.75f, m_currentSpawnRate - (m_currentSpawnRate * 0.1f));
             m_spawnTime = m_currentSpawnRate;
         }
 
@@ -109,8 +123,6 @@ public class NoteManager : MonoBehaviour
 
     public void NotifySuccess(NoteBehaviour p_note)
     {
-        Debug.Log("Success");
-
         if (p_note == m_currentNotes.Peek())
         {
             m_currentNotes.Dequeue();
@@ -125,8 +137,6 @@ public class NoteManager : MonoBehaviour
     }
     
     public void NotifyFailure(NoteBehaviour p_note) {
-        Debug.Log("Failed");
-        
         if (p_note == m_currentNotes.Peek())
         {
             m_currentNotes.Dequeue();

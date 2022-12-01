@@ -2,21 +2,21 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 [RequireComponent(typeof(Collider))]
 public class NoteBehaviour : MonoBehaviour
 {
-    [SerializeField] private SpriteRenderer m_spriteDisplay;
+    [SerializeField] private MaterialDissolve m_dissolveMaterial;
     [SerializeField] private Gesture.Type m_expectedInput;
     private NoteManager m_parent;
     private bool m_waitingForInput;
     private bool m_consumed = false;
     private float m_speed = 1.0f;
 
-    public Sprite victorySprite;
-    public Sprite okSprite;
-    public Sprite fistSprite;
-    public Sprite gangSprite;
+    public Texture victoryTexture;
+    public Texture okTexture;
+    public Texture fistTexture;
 
     public NoteManager Parent
     {
@@ -34,16 +34,16 @@ public class NoteBehaviour : MonoBehaviour
             switch (m_expectedInput)
             {
                 case Gesture.Type.FIST:
-                    m_spriteDisplay.sprite = fistSprite;
+                    m_dissolveMaterial.CustomTexture = fistTexture;
                     break;
                 case Gesture.Type.GANG:
-                    m_spriteDisplay.sprite = gangSprite;
+                    m_dissolveMaterial.CustomTexture = null;
                     break;
                 case Gesture.Type.OKHAND:
-                    m_spriteDisplay.sprite = okSprite;
+                    m_dissolveMaterial.CustomTexture = okTexture;
                     break;
                 case Gesture.Type.VICTORY:
-                    m_spriteDisplay.sprite = victorySprite;
+                    m_dissolveMaterial.CustomTexture = victoryTexture;
                     break;
             }
         }

@@ -57,7 +57,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4753617152005842895}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -6.375}
+  m_LocalPosition: {x: 0, y: 0, z: -4.122}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -167,16 +167,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d9d8b4c49ad3284ba91409c68337c0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_extent: {x: 3, y: 2, z: 0.1}
-  m_baseSpawnRate: 0
-  m_baseSpawnSpeed: 0
+  m_extent: {x: 1.5, y: 0.5, z: 0.1}
+  m_baseSpawnRate: 3
+  m_baseSpawnSpeed: 1
   m_notePrefab: {fileID: 3634045671250438456, guid: 2553cfba709a4b54099e1e6d0fd1acd2,
     type: 3}
   m_spawnParticles: {fileID: 1840674539800283191, guid: 4814b6d2e66f8d84caa5115adcdcc5ac,
     type: 3}
   m_completeParticles: {fileID: 1115607260066406278, guid: 62787b42a34fb3c4f8466354f4149374,
     type: 3}
-  m_handControllerRef: {fileID: 0}
   m_deadZoneRef: {fileID: 4753617152005842893}
   m_noteHolder: {fileID: 4753617151428438815}
   m_particleHolder: {fileID: 4753617152658446683}
