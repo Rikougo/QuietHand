@@ -5,6 +5,8 @@ namespace Terrain
 {
     public class CurrentGestureBehaviour : MonoBehaviour
     {
+        [Header("Settings")] 
+        [SerializeField] private HandController.Side m_side;
         [Header("ComponentsRef")]
         [SerializeField] private HandController m_handControllerRef;
         [SerializeField] private SpriteRenderer m_spriteDisplay;
@@ -12,15 +14,16 @@ namespace Terrain
         public Sprite victorySprite;
         public Sprite okSprite;
         public Sprite fistSprite;
-        public Sprite gangSprite;
-
+        public Sprite rockSprite;
+        
         private bool m_started = false;
         
         private void OnStartOrEnable()
         {
             if (!m_started) return;
 
-            m_handControllerRef.OnNewGesture += UpdateGesture;
+            if (m_side == HandController.Side.LEFT) m_handControllerRef.OnNewLeftGesture += UpdateGesture;
+            else m_handControllerRef.OnNewRightGesture += UpdateGesture;
         }
         
         private void Start()
@@ -37,7 +40,8 @@ namespace Terrain
 
         private void OnDisable()
         {
-            m_handControllerRef.OnNewGesture -= UpdateGesture;
+            if (m_side == HandController.Side.LEFT) m_handControllerRef.OnNewLeftGesture -= UpdateGesture;
+            else m_handControllerRef.OnNewRightGesture -= UpdateGesture;
         }
 
         private void UpdateGesture(Gesture? p_newGesture, Gesture? p_oldGesture)
@@ -49,14 +53,14 @@ namespace Terrain
                     case Gesture.Type.FIST:
                         m_spriteDisplay.sprite = fistSprite;
                         break;
-                    case Gesture.Type.GANG:
-                        m_spriteDisplay.sprite = gangSprite;
-                        break;
                     case Gesture.Type.OKHAND:
                         m_spriteDisplay.sprite = okSprite;
                         break;
                     case Gesture.Type.VICTORY:
                         m_spriteDisplay.sprite = victorySprite;
+                        break;
+                    case Gesture.Type.METAL:
+                        m_spriteDisplay.sprite = rockSprite;
                         break;
                 }
             }

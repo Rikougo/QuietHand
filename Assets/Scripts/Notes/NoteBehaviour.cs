@@ -17,6 +17,7 @@ public class NoteBehaviour : MonoBehaviour
     public Texture victoryTexture;
     public Texture okTexture;
     public Texture fistTexture;
+    public Texture rockTexture;
 
     public NoteManager Parent
     {
@@ -35,9 +36,6 @@ public class NoteBehaviour : MonoBehaviour
             {
                 case Gesture.Type.FIST:
                     m_dissolveMaterial.CustomTexture = fistTexture;
-                    break;
-                case Gesture.Type.GANG:
-                    m_dissolveMaterial.CustomTexture = null;
                     break;
                 case Gesture.Type.OKHAND:
                     m_dissolveMaterial.CustomTexture = okTexture;

@@ -9,6 +9,7 @@ public class MaterialDissolve : MonoBehaviour
     
     private Material m_material;
     private float m_currentDissolve;
+    private bool m_playing;
     
     private static readonly float Margin = 0.05f;
     
@@ -31,17 +32,25 @@ public class MaterialDissolve : MonoBehaviour
         m_material.SetFloat(Dissolve, 1.0f);
         if (m_customTexture != null) m_material.SetTexture(BaseTexture, m_customTexture);
         m_currentDissolve = 0.0f;
+        m_playing = m_appearOnAwake;
     }
 
-    private void FixedUpdate()
+    public void Play()
     {
-        if (m_currentDissolve < (m_duration + Margin))
+        m_currentDissolve = 0.0f;
+        m_playing = true;
+    }
+
+    private void Update()
+    {
+        if (m_playing && m_currentDissolve < (m_duration + Margin))
         {
             float l_mappedValue = 1.0f - (m_currentDissolve * (1.0f / m_duration));
             m_material.SetFloat(Dissolve, l_mappedValue);
 
-            m_currentDissolve += Time.fixedDeltaTime;
+            m_currentDissolve += Time.deltaTime;
+
+            if (m_currentDissolve >= m_duration + Margin) m_playing = false;
         }
-        
     }
 }
