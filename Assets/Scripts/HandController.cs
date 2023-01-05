@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
@@ -40,19 +41,30 @@ public class HandController : MonoBehaviour
         LEFT  = 0,
         RIGHT = 1
     }
-    
+
+    [SerializeField] private TextMeshProUGUI m_distText;
+    [SerializeField] private Transform m_leftHand;
+    [SerializeField] private Transform m_rightHand;
     [SerializeField] private OVRSkeleton m_leftSkeleton;
     [SerializeField] private OVRSkeleton m_rightSkeleton;
     
     [SerializeField] private float m_recognizeThreshold = 0.1f;
+    [SerializeField] private float m_submitThreshold = 0.15f;
+    [SerializeField] private float m_inputDelay = 0.04f;
     
     // debug purpose
     [SerializeField] private List<Gesture> m_leftDbgGesture;
     [SerializeField] private List<Gesture> m_rightDbgGesture;
-    
+
+    private float m_leftInputTimer = 0.0f;
+    private float m_rightInputTimer = 0.0f;
+    private Vector3 m_lastLeftPos;
+    private Vector3 m_lastRightPos;
     private Gesture? m_lastLeftGesture;
     private Gesture? m_lastRightGesture;
-    
+
+    public float m_dbgMaxLeft = float.MinValue, m_dbgMaxRight = float.MinValue;
+
     #region EVENTS
 
     public delegate void OnNewGestureHandler(Gesture? p_newGesture, Gesture? p_oldGesture);
@@ -61,20 +73,54 @@ public class HandController : MonoBehaviour
     public event OnNewGestureHandler OnNewRightGesture;
     #endregion
 
+    void Start()
+    {
+        m_lastLeftPos = m_leftHand.position;
+        m_lastRightPos = m_rightHand.position;
+    }
+    
     // Update is called once per frame
     void Update()
     {
         #if UNITY_EDITOR
         if (Input.GetKeyDown(KeyCode.Keypad1)) DbgSave(Side.LEFT);
         if (Input.GetKeyDown(KeyCode.Keypad3)) DbgSave(Side.RIGHT);
-        if (Input.GetKeyDown(KeyCode.Space)) GameObject.FindObjectOfType<NoteManager>().StartGame();
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            GameDirector.CurrentState = GameDirector.GameState.PLAYING;
+            FindObjectOfType<NoteManager>().StartGame();
+        }
         #endif
+
+        if (m_leftInputTimer > 0.0f) m_leftInputTimer -= Time.deltaTime;
+        if (m_rightInputTimer > 0.0f) m_rightInputTimer -= Time.deltaTime;
         
+        Vector3 l_leftPos = m_leftHand.position;
+        Vector3 l_rightPos = m_rightHand.position;
         RecognizedGesture l_leftResult = Recognize(Side.LEFT);
         RecognizedGesture l_rightResult = Recognize(Side.RIGHT);
 
-        CheckResult(l_leftResult);
-        CheckResult(l_rightResult);
+        float l_leftDist = ((l_leftPos - m_lastLeftPos).sqrMagnitude) / Time.deltaTime;
+        if (l_leftDist >= m_submitThreshold && m_leftInputTimer <= 0.0f)
+        {
+            Debug.Log(l_leftDist);
+            m_dbgMaxLeft = l_leftDist;
+            CheckResult(l_leftResult);
+            m_leftInputTimer = m_inputDelay;
+        }
+
+        float l_rightDist = ((l_rightPos - m_lastRightPos).sqrMagnitude) / Time.deltaTime;
+        if (l_rightDist >= m_submitThreshold && m_rightInputTimer <= 0.0f)
+        {
+            Debug.Log(l_rightDist);
+            m_dbgMaxRight = l_rightDist;
+            CheckResult(l_rightResult);
+            m_rightInputTimer = m_inputDelay;
+        }
+
+        m_distText.text = $"{l_leftDist:F4} | {l_rightDist:F4}";
+        m_lastLeftPos = l_leftPos;
+        m_lastRightPos = l_rightPos;
     }
 
     private void CheckResult(RecognizedGesture p_recognizedGesture)
@@ -83,8 +129,6 @@ public class HandController : MonoBehaviour
         
         if (p_recognizedGesture.found)
         {
-            if (!p_recognizedGesture.gesture.Equals(l_testGesture))
-            {
                 if (p_recognizedGesture.side == Side.LEFT) 
                     OnNewLeftGesture?.Invoke(p_recognizedGesture.gesture, l_testGesture);
                 else 
@@ -92,7 +136,9 @@ public class HandController : MonoBehaviour
 
                 if (p_recognizedGesture.side == Side.LEFT) m_lastLeftGesture = p_recognizedGesture.gesture;
                 else m_lastRightGesture = p_recognizedGesture.gesture;
-            }
+            /*if (!p_recognizedGesture.gesture.Equals(l_testGesture))
+            {
+            }*/
         }
         else
         {

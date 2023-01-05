@@ -168,11 +168,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_extent: {x: 1.5, y: 0.5, z: 0.1}
-  m_baseSpawnRate: 3
-  m_baseSpawnSpeed: 1
-  m_notePrefab: {fileID: 3634045671250438456, guid: 2553cfba709a4b54099e1e6d0fd1acd2,
-    type: 3}
-  m_spawnParticles: {fileID: 1840674539800283191, guid: 4814b6d2e66f8d84caa5115adcdcc5ac,
+  m_baseStamina: 100
+  m_staminaLoss: 10
+  m_staminaGain: 2
+  m_speedGain: 2
+  m_notePrefab: {fileID: 3632258942116788634, guid: 2553cfba709a4b54099e1e6d0fd1acd2,
     type: 3}
   m_completeParticles: {fileID: 1115607260066406278, guid: 62787b42a34fb3c4f8466354f4149374,
     type: 3}

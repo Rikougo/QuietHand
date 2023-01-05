@@ -40,13 +40,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _Dissolve: 0
-    - _Metallic: 0
-    - _NoiseScale: 32.75
+    - _Metallic: 1
+    - _NoiseScale: 30
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _Smoothness: 0.6
     m_Colors:
-    - _BaseColor: {r: 1, g: 0, b: 0, a: 0}
-    - _DisolveColor: {r: 0.4009434, g: 0.66408044, b: 1, a: 0}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 0}
+    - _DisolveColor: {r: 1, g: 1, b: 1, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &2562595309481607874
 MonoBehaviour:

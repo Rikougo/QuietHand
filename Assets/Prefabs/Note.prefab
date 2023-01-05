@@ -108,7 +108,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1363167242630163298}
-  - component: {fileID: 3634045671250438456}
+  - component: {fileID: 3632258942116788634}
   - component: {fileID: 4983249948685070105}
   - component: {fileID: 4341631519825646118}
   m_Layer: 0
@@ -134,7 +134,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3634045671250438456
+--- !u!114 &3632258942116788634
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -151,6 +151,11 @@ MonoBehaviour:
   victoryTexture: {fileID: 2800000, guid: 1fa8430344ad87d43982853b21d0b654, type: 3}
   okTexture: {fileID: 2800000, guid: ce10cfe5d7c015e4aa8b9dff00a4d905, type: 3}
   fistTexture: {fileID: 2800000, guid: 2a72f9a94ae0b084d8b16758c95060d3, type: 3}
+  rockTexture: {fileID: 2800000, guid: 22d32c54f098e504a84d04268eac398e, type: 3}
+  rVictoryTexture: {fileID: 2800000, guid: 2c1feac6d9cf1334b8ad93ed3d6f0734, type: 3}
+  rOkTexture: {fileID: 2800000, guid: 1a2f19f91d19aba41bd8f3b95ccacb36, type: 3}
+  rFistTexture: {fileID: 2800000, guid: fc14038d5e52f9f4f98ed9f30ae05735, type: 3}
+  rRockTexture: {fileID: 2800000, guid: 9093b67cb2cbacd4fbf3476401b91154, type: 3}
 --- !u!65 &4983249948685070105
 BoxCollider:
   m_ObjectHideFlags: 0

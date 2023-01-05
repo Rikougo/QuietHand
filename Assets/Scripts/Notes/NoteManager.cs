@@ -1,41 +1,52 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Notes;
+using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 public class NoteManager : MonoBehaviour
 {
     [Header("Settings")] 
     [SerializeField] private Vector3 m_extent = Vector3.zero;
+    [SerializeField] private float m_baseStamina = 100.0f;
+    [SerializeField] private float m_staminaLoss = 10.0f;
+    [SerializeField] private float m_staminaGain = 2.0f;
+    [SerializeField] private float m_speedGain = 2.0f;
 
     [Header("Components")]
     [SerializeField] private NoteBehaviour m_notePrefab;
-    // [SerializeField] private ParticleSystem m_spawnParticles;
     [SerializeField] private ParticleSystem m_completeParticles;
 
     [Header("ComponentsRef")] 
     [SerializeField] private NoteDeadZone m_deadZoneRef;
     [SerializeField] private Transform m_noteHolder;
     [SerializeField] private Transform m_particleHolder;
-    private HandController m_handControllerRef;
+    [SerializeField] private Image m_progressImage;
+    [SerializeField] private TextMeshProUGUI m_scoreText;
 
     private bool m_started = false;
 
-    private int m_currentSongBPM = 0;
-    private int m_currentSongTickAmount = 0;
-    private int m_currentTick = 0;
     private List<Tuple<Gesture.Type, Gesture.Type>> m_noteList;
     private Queue<NoteBehaviour> m_currentLeftNotes;
     private Queue<NoteBehaviour> m_currentRightNotes;
-    private bool m_playing;
+    private bool m_playing = false;
 
+    private string m_currentMapName = String.Empty;
+    private int m_currentSongBpm = 0;
+    private int m_currentSongTickAmount = 0;
+    private int m_currentTick = 0;
     private float m_tickTimer = 0.0f;
-    /*private float m_spawnTime;
-    private float m_currentSpawnRate;
-    private float m_currentSpeed;
-    private int m_currentCombo;*/
+    private float m_totalMapTime = 0.0f;
+    private float m_mapTimer = 0.0f;
+    private float m_currentStamina;
+    private NoteMapStats m_currentMapStats;
+    private float m_currentScore = 0.0f;
+
+    public NoteMapStats m_lastMapStats { get; private set; }
 
     private void Awake()
     {
@@ -47,25 +58,26 @@ public class NoteManager : MonoBehaviour
 
     private void Reset()
     {
+        m_progressImage.fillAmount = 0;
+        m_scoreText.text = String.Empty;
+
         while (m_currentLeftNotes.Count > 0)
         {
-            Destroy(m_currentLeftNotes.Dequeue());
+            Destroy(m_currentLeftNotes.Dequeue().gameObject);
         }
         
         while (m_currentRightNotes.Count > 0)
         {
-            Destroy(m_currentRightNotes.Dequeue());
+            Destroy(m_currentRightNotes.Dequeue().gameObject);
         }
 
         m_playing = false;
         m_currentLeftNotes.Clear();
         m_currentRightNotes.Clear();
 
+        m_currentStamina = m_baseStamina;
+
         LoadMap();
-        /*m_currentSpawnRate = m_baseSpawnRate;
-        m_currentSpeed = m_baseSpawnSpeed;
-        m_spawnTime = m_currentSpawnRate;
-        m_currentCombo = 0;*/
     }
 
     private void LoadMap()
@@ -77,8 +89,9 @@ public class NoteManager : MonoBehaviour
         string l_header = l_reader.ReadLine();
         Debug.Log(l_header);
         string[] l_parsedHeader = l_header.Split(",");
-        m_currentSongBPM = Int32.Parse(l_parsedHeader[0]);
+        m_currentSongBpm = Int32.Parse(l_parsedHeader[0]);
         m_currentSongTickAmount = Int32.Parse(l_parsedHeader[1]);
+        m_totalMapTime = m_currentSongTickAmount * (60.0f / m_currentSongBpm);
 
         m_noteList = new List<Tuple<Gesture.Type, Gesture.Type>>();
 
@@ -91,8 +104,13 @@ public class NoteManager : MonoBehaviour
             ));
         }
 
-        Debug.LogFormat("{0} {1} {2}", m_noteList.Count, m_currentSongTickAmount, m_currentSongBPM);
+        Debug.LogFormat("{0} {1} {2}", m_noteList.Count, m_currentSongTickAmount, m_currentSongBpm);
         m_currentTick = 0;
+        m_mapTimer = 0.0f;
+        
+        m_currentMapStats.failHits = 0;
+        m_currentMapStats.successHits = 0;
+        m_currentMapName = Path.GetFileNameWithoutExtension(l_path);
     }
 
     private void OnDrawGizmos()
@@ -101,67 +119,48 @@ public class NoteManager : MonoBehaviour
         Gizmos.DrawCube(transform.position, m_extent);
     }
 
-    private void OnStartOrEnable()
-    {
-        if (!m_started) return;
-
-        m_handControllerRef = FindObjectOfType<HandController>();
-        m_handControllerRef.OnNewLeftGesture += ProcessInput;
-        m_handControllerRef.OnNewRightGesture += ProcessInput;
-    }
-
-    private void Start()
-    {
-        m_started = true;
-
-        OnStartOrEnable();
-    }
-
-    private void ProcessInput(Gesture? p_newInput, Gesture? p_oldInput)
+    public void ProcessInput(Gesture? p_newInput, Gesture? p_oldInput)
     {
         if (!m_playing) return;
+
+        if (!p_newInput.HasValue) return;
         
-        if (m_currentLeftNotes.Count > 0 && p_newInput.HasValue)
+        var l_queue = p_newInput.Value.side == HandController.Side.LEFT ? m_currentLeftNotes : m_currentRightNotes;
+        
+        if (l_queue.Count > 0)
         {
-            m_currentLeftNotes.Peek().GiveInput(p_newInput.Value);
+            l_queue.Peek().GiveInput(p_newInput.Value);
         }
     }
-
-    private void OnEnable()
-    {
-        OnStartOrEnable();
-    }
-
-    private void OnDisable()
-    {
-        m_handControllerRef.OnNewLeftGesture -= ProcessInput;
-        m_handControllerRef.OnNewRightGesture -= ProcessInput;
-    }
-
+    
     public void StartGame()
     {
         Reset();
-
+        m_scoreText.text = $"{m_currentScore:F0}";
         m_playing = true;
     }
     
     private void FixedUpdate()
     {
-        if (!m_playing) return;
+        if (!m_playing || !GameDirector.InPlayMode) return;
 
-        m_tickTimer += Time.fixedDeltaTime;
+        m_tickTimer += Time.fixedDeltaTime * m_speedGain;
+        m_mapTimer += Time.fixedDeltaTime * m_speedGain;
 
-        if (m_tickTimer > (60.0f / m_currentSongBPM))
+        m_progressImage.fillAmount = m_mapTimer / m_totalMapTime;
+
+        if (m_tickTimer > (60.0f / m_currentSongBpm))
         {
             Tick();
             m_tickTimer = 0.0f;
             m_currentTick++;
 
             if (m_currentTick >= m_currentSongTickAmount)
+            {
                 EndGame();
+                OnMapEnd?.Invoke(true);
+            }
         }
-        /*if (m_spawnTime <= 0.0f) SpawnNote();
-        m_spawnTime -= Time.fixedDeltaTime;*/
     }
 
     private void Tick()
@@ -179,6 +178,8 @@ public class NoteManager : MonoBehaviour
             l_leftNote.transform.forward = l_direction;
             l_leftNote.Parent = this;
             l_leftNote.ExpectedInput = m_noteList[m_currentTick].Item1;
+            l_leftNote.ExpectedSide = HandController.Side.LEFT;
+            l_leftNote.Speed = m_speedGain;
             
             m_currentLeftNotes.Enqueue(l_leftNote);
         }
@@ -192,50 +193,29 @@ public class NoteManager : MonoBehaviour
             l_rightNote.transform.forward = l_direction;
             l_rightNote.Parent = this;
             l_rightNote.ExpectedInput = m_noteList[m_currentTick].Item2;
+            l_rightNote.ExpectedSide = HandController.Side.RIGHT;
+            l_rightNote.Speed = m_speedGain;
             
-            m_currentLeftNotes.Enqueue(l_rightNote);
+            m_currentRightNotes.Enqueue(l_rightNote);
         }
     }
 
     public void EndGame()
     {
+        m_currentMapStats.Record(m_currentMapName);
+        m_lastMapStats = m_currentMapStats;
         Reset();
     }
-
-    /*private void SpawnNote()
-    {
-        Vector3 l_tPosition = transform.position;
-        Vector3 l_position = new Vector3(
-            Random.Range(l_tPosition.x - m_extent.x, l_tPosition.x + m_extent.x),
-            Random.Range(l_tPosition.y - m_extent.y, l_tPosition.y + m_extent.y),
-            l_tPosition.z);
-        NoteBehaviour l_note = Instantiate(m_notePrefab, l_position, Quaternion.identity, m_noteHolder);
-        Vector3 l_direction = m_deadZoneRef.transform.position - l_tPosition;
-        l_direction.y = 0.0f;
-        l_direction.Normalize();
-        l_note.transform.forward = l_direction;
-        l_note.Parent = this;
-        l_note.ExpectedInput = (Gesture.Type)Random.Range(0, (int)Gesture.Type.MAX);
-        // l_note.Speed = m_currentSpeed;
-
-        m_currentLeftNotes.Enqueue(l_note);
-
-        ScaleDifficulty();
-        
-        // m_spawnTime = m_currentSpawnRate;
-    }*/
-
-    /*private void ScaleDifficulty()
-    {
-        /*m_currentSpeed = Mathf.Min(2.0f, m_currentSpeed + (m_currentSpeed * 0.05f));
-        m_currentSpawnRate = Mathf.Max(0.75f, m_currentSpawnRate - (m_currentSpawnRate * 0.1f));#1#
-    }*/
-
+    
     public void NotifySuccess(NoteBehaviour p_note)
     {
-        if (p_note == m_currentLeftNotes.Peek())
+        if (!m_playing) return;
+        
+        var l_queue = p_note.ExpectedSide == HandController.Side.LEFT ? m_currentLeftNotes : m_currentRightNotes;
+        
+        if (p_note == l_queue.Peek())
         {
-            m_currentLeftNotes.Dequeue();
+            l_queue.Dequeue();
 
             ParticleSystem l_particle = Instantiate(m_completeParticles, p_note.transform.position, quaternion.identity,
                 m_particleHolder);
@@ -246,16 +226,20 @@ public class NoteManager : MonoBehaviour
             Destroy(l_particle.gameObject,
                 Mathf.Max(l_mainModule.duration, l_mainModule.startLifetime.constantMax) + 0.1f);
             
-            UpdateScoreAndStamina(true);
+            UpdateScoreAndStamina(true, p_note.ComputeScore());
         }
         else Debug.LogWarning("NoteManager::NotifySuccess: sent success notification with a note that is not the top queue");
     }
 
     public void NotifyFailure(NoteBehaviour p_note)
     {
-        if (p_note == m_currentLeftNotes.Peek())
+        if (!m_playing) return;
+
+        var l_queue = p_note.ExpectedSide == HandController.Side.LEFT ? m_currentLeftNotes : m_currentRightNotes;
+        
+        if (p_note == l_queue.Peek())
         {
-            m_currentLeftNotes.Dequeue();
+            l_queue.Dequeue();
 
             ParticleSystem l_particle = Instantiate(m_completeParticles, p_note.transform.position, quaternion.identity,
                 m_particleHolder);
@@ -271,8 +255,34 @@ public class NoteManager : MonoBehaviour
         else Debug.LogWarning("NoteManager::NotifyFailure: sent failure notification with a note that is not the top queue");
     }
 
-    private void UpdateScoreAndStamina(bool p_success)
+    private void UpdateScoreAndStamina(bool p_success, float p_scoreGain = 0.0f)
     {
-        
+        if (p_success)
+        {
+            m_currentStamina = Mathf.Min(m_currentStamina + m_staminaGain, m_baseStamina);
+            m_currentMapStats.successHits++;
+            m_currentScore += p_scoreGain;
+        }
+        else
+        {
+            m_currentStamina -= m_staminaLoss;
+            m_currentMapStats.failHits++;
+        }
+
+        m_scoreText.text = $"{m_currentScore:F0}";
+
+        if (m_currentStamina <= 0.0f)
+        {
+            EndGame();
+            OnMapEnd?.Invoke(false);
+        }
     }
+    
+    #region EVENTS
+
+    public delegate void OnMapEndHandler(bool p_success);
+
+    public event OnMapEndHandler OnMapEnd;
+
+    #endregion
 }
